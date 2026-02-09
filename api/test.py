@@ -32,8 +32,3 @@ class handler(BaseHTTPRequestHandler):
                 "error_type": type(e).__name__,
                 "error_msg": str(e),
             }).encode())
-```
-
-GitHub에 push하고, 이 주소로 접속해봐:
-```
-https://lottery-slotap1.vercel.app/api/test
