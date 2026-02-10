@@ -1,27 +1,32 @@
 from http.server import BaseHTTPRequestHandler
 import urllib.request
+import json
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        url = "https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=1155"
-        req = urllib.request.Request(url, headers={
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Referer": "https://www.dhlottery.co.kr/",
-            "Accept": "application/json, text/javascript, */*; q=0.01",
-            "Accept-Language": "ko-KR,ko;q=0.9",
-        })
+        # 대안 API 테스트
+        apis = {
+            "api1": "https://api.nlotto.co.kr/common.do?method=getLottoNumber&drwNo=1155",
+            "api2": "https://www.nlotto.co.kr/common.do?method=getLottoNumber&drwNo=1155",
+        }
 
-        try:
-            with urllib.request.urlopen(req, timeout=10) as res:
-                raw = res.read().decode("utf-8", errors="replace")
+        results = {}
+        for name, url in apis.items():
+            try:
+                req = urllib.request.Request(url, headers={
+                    "User-Agent": "Mozilla/5.0",
+                })
+                with urllib.request.urlopen(req, timeout=10) as res:
+                    raw = res.read().decode("utf-8", errors="replace")
+                    # JSON인지 확인
+                    if raw.strip().startswith("{"):
+                        results[name] = {"status": "JSON", "data": json.loads(raw)}
+                    else:
+                        results[name] = {"status": "HTML", "preview": raw[:200]}
+            except Exception as e:
+                results[name] = {"status": "error", "msg": str(e)}
 
-            self.send_response(200)
-            self.send_header("Content-Type", "text/plain; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(raw[:2000].encode())
-
-        except Exception as e:
-            self.send_response(200)
-            self.send_header("Content-Type", "text/plain")
-            self.end_headers()
-            self.wfile.write(f"ERROR: {type(e).__name__}: {e}".encode())
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.end_headers()
+        self.wfile.write(json.dumps(results, ensure_ascii=False).encode())
